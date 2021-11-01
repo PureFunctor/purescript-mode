@@ -525,6 +525,8 @@ autofill-mode."
                            #'purescript-indentation-expression-layout nil)))
     ("ado"   . (lambda () (purescript-indentation-with-starter
                            #'purescript-indentation-expression-layout nil)))
+    ("in"    . (lambda () (purescript-indentation-with-starter
+                           #'purescript-indentation-expression nil)))
     ("mdo"   . (lambda () (purescript-indentation-with-starter
                            #'purescript-indentation-expression-layout nil)))
     ("rec"   . (lambda () (purescript-indentation-with-starter
