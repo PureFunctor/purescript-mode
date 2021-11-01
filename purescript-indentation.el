@@ -765,9 +765,7 @@ autofill-mode."
            (throw 'parse-end nil)))))
 
 (defun purescript-indentation-layout (parser)
-  (if (string= current-token "{")
-      (purescript-indentation-list parser "}" ";" nil)
-    (purescript-indentation-implicit-layout-list parser)))
+  (purescript-indentation-implicit-layout-list parser))
 
 (defun purescript-indentation-expression-token (token)
   (member token '("if" "let" "do" "case" "\\" "(" "[" "{" "::"
