@@ -139,6 +139,7 @@ be set to the preferred literate style."
     (modify-syntax-entry ?\) ")(" table)
     (modify-syntax-entry ?\[  "(]" table)
     (modify-syntax-entry ?\]  ")[" table)
+    (modify-syntax-entry ?\\ "w" table)
 
     (cond ((featurep 'xemacs)
            ;; I don't know whether this is equivalent to the below
