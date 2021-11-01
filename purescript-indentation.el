@@ -497,7 +497,8 @@ autofill-mode."
     ("type" . (lambda () (purescript-indentation-statement-right #'purescript-indentation-data)))
     ("newtype" . (lambda () (purescript-indentation-statement-right #'purescript-indentation-data)))
     ("class" . purescript-indentation-class-declaration)
-    ("instance" . purescript-indentation-class-declaration )))
+    ("instance" . purescript-indentation-class-declaration)
+    ("else" . purescript-indentation-else-instance-declaration)))
 
 (defconst purescript-indentation-type-list
   '(("::"    . (lambda () (purescript-indentation-with-starter
@@ -647,6 +648,11 @@ autofill-mode."
        (purescript-indentation-with-starter
         #'purescript-indentation-expression-layout nil)))
    nil))
+
+(defun purescript-indentation-else-instance ()
+  (purescript-indentation-with-starter
+   (lambda ()
+     (purescript-indentation-class-declaration)) nil))
 
 (defun purescript-indentation-module ()
   (purescript-indentation-with-starter
