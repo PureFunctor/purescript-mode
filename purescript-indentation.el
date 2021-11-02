@@ -153,21 +153,6 @@ autofill-mode."
   (interactive)
   (purescript-indentation-mode t))
 
-(put 'parse-error
-     'error-conditions
-     '(error parse-error))
-(put 'parse-error 'error-message "Parse error")
-
-(defun parse-error (&rest args)
-  (signal 'parse-error (apply 'format args)))
-
-(defmacro on-parse-error (except &rest body)
-  `(condition-case parse-error-string
-       (progn ,@body)
-     (parse-error
-      ,except
-      (message "%s" (cdr parse-error-string)))))
-
 (defun purescript-current-column ()
   "Compute current column according to purescript syntax rules,
   correctly ignoring composition."
@@ -230,27 +215,25 @@ autofill-mode."
       (progn
         (delete-horizontal-space)
         (newline))
-    (on-parse-error
-     (newline)
-     (let* ((cc (purescript-current-column))
-            (ci (purescript-indentation-current-indentation))
-            (indentations (purescript-indentation-find-indentations)))
-       (skip-syntax-forward "-")
-       (if (prog1 (and (eolp)
-                       (not (= (purescript-current-column) ci)))
-             (delete-horizontal-space)
-             (if (not (eq purescript-literate 'bird))
-                 (newline)
-               (when purescript-indentation-birdtrack-extra-space
-                 (indent-to 2))
-               (newline)
-               (insert "> ")))
-           (purescript-indentation-reindent
-            (max (purescript-indentation-butlast indentations)
-                 (purescript-indentation-matching-indentation
-                  ci indentations)))
-         (purescript-indentation-reindent (purescript-indentation-matching-indentation
-                                        cc indentations)))))))
+    (let* ((cc (purescript-current-column))
+           (ci (purescript-indentation-current-indentation))
+           (indentations (purescript-indentation-find-indentations)))
+      (skip-syntax-forward "-")
+      (if (prog1 (and (eolp)
+                      (not (= (purescript-current-column) ci)))
+            (delete-horizontal-space)
+            (if (not (eq purescript-literate 'bird))
+                (newline)
+              (when purescript-indentation-birdtrack-extra-space
+                (indent-to 2))
+              (newline)
+              (insert "> ")))
+          (purescript-indentation-reindent
+           (max (purescript-indentation-butlast indentations)
+                (purescript-indentation-matching-indentation
+                 ci indentations)))
+        (purescript-indentation-reindent (purescript-indentation-matching-indentation
+                                          cc indentations))))))
 
 (defun purescript-indentation-one-indentation (col indentations)
   (let* ((last-pair (last indentations)))
@@ -340,66 +323,63 @@ autofill-mode."
 
 (defun purescript-indentation-delete-backward-char (n)
   (interactive "p")
-  (on-parse-error
-   (delete-char (- n))
-   (cond
-    ((purescript-indentation-outside-bird-line)
-     (delete-char (- n)))
-    ((and (use-region-p)
-          delete-active-region
-          (not (= (point) (mark))))
-     (delete-region (mark) (point)))
-    ((or (= (purescript-current-column) 0)
-         (> (purescript-current-column) (purescript-indentation-current-indentation))
-         (nth 8 (syntax-ppss)))
-     (delete-char (- n)))
-    (purescript-indentation-delete-backward-indentation
-     (let* ((ci (purescript-indentation-current-indentation))
-            (pi (purescript-indentation-previous-indentation
-                 ci (purescript-indentation-find-indentations))))
-       (save-excursion
-         (cond (pi
-                (move-to-column pi)
-                (delete-region (point)
-                               (progn (move-to-column ci)
-                                      (point))))
-               (t
-                (if (not purescript-indentation-delete-backward-jump-line)
-                    (delete-char (- 1))
-                  (beginning-of-line)
-                  (delete-region (max (point-min) (- (point) 1))
-                                 (progn (move-to-column ci)
-                                        (point)))))))))
-    (t (delete-char (- n))))))
+  (cond
+   ((purescript-indentation-outside-bird-line)
+    (delete-char (- n)))
+   ((and (use-region-p)
+         delete-active-region
+         (not (= (point) (mark))))
+    (delete-region (mark) (point)))
+   ((or (= (purescript-current-column) 0)
+        (> (purescript-current-column) (purescript-indentation-current-indentation))
+        (nth 8 (syntax-ppss)))
+    (delete-char (- n)))
+   (purescript-indentation-delete-backward-indentation
+    (let* ((ci (purescript-indentation-current-indentation))
+           (float-pi (purescript-indentation-previous-indentation
+                ci (purescript-indentation-find-indentations))))
+      (save-excursion
+        (cond (float-pi
+               (move-to-column float-pi)
+               (delete-region (point)
+                              (progn (move-to-column ci)
+                                     (point))))
+              (t
+               (if (not purescript-indentation-delete-backward-jump-line)
+                   (delete-char (- 1))
+                 (beginning-of-line)
+                 (delete-region (max (point-min) (- (point) 1))
+                                (progn (move-to-column ci)
+                                       (point)))))))))
+   (t (delete-char (- n)))))
 
 (defun purescript-indentation-delete-char (n)
   (interactive "p")
   (if (purescript-indentation-outside-bird-line)
       (delete-char n)
-    (on-parse-error (delete-char n)
-                    (cond
-                     ((and delete-selection-mode
-                           mark-active
-                           (not (= (point) (mark))))
-                      (delete-region (mark) (point)))
-                     ((and (eq purescript-literate 'bird)
-                           (looking-at "\n> "))
-                      (delete-char (+ n 2)))
-                     ((or (eolp)
-                          (>= (purescript-current-column) (purescript-indentation-current-indentation))
-                          (nth 8 (syntax-ppss)))
-                      (delete-char n))
-                     (purescript-indentation-delete-indentation
-                      (let* ((ci (purescript-indentation-current-indentation))
-                             (pi (purescript-indentation-previous-indentation
-                                  ci (purescript-indentation-find-indentations))))
-                        (save-excursion
-                          (if (and pi (> pi (purescript-current-column)))
-                              (move-to-column pi))
-                          (delete-region (point)
-                                         (progn (move-to-column ci)
-                                                (point))))))
-                     (t (delete-char (- n)))))))
+    (cond
+     ((and delete-selection-mode
+           mark-active
+           (not (= (point) (mark))))
+      (delete-region (mark) (point)))
+     ((and (eq purescript-literate 'bird)
+           (looking-at "\n> "))
+      (delete-char (+ n 2)))
+     ((or (eolp)
+          (>= (purescript-current-column) (purescript-indentation-current-indentation))
+          (nth 8 (syntax-ppss)))
+      (delete-char n))
+     (purescript-indentation-delete-indentation
+      (let* ((ci (purescript-indentation-current-indentation))
+             (float-pi (purescript-indentation-previous-indentation
+                  ci (purescript-indentation-find-indentations))))
+        (save-excursion
+          (if (and float-pi (> float-pi (purescript-current-column)))
+              (move-to-column float-pi))
+          (delete-region (point)
+                         (progn (move-to-column ci)
+                                (point))))))
+     (t (delete-char (- n))))))
 
 (defun purescript-indentation-goto-least-indentation ()
   (beginning-of-line)
@@ -454,9 +434,7 @@ autofill-mode."
           (purescript-indentation-first-indentation)
         (setq current-token (purescript-indentation-peek-token))
         (catch 'parse-end
-          (purescript-indentation-toplevel)
-          (unless (eq current-token 'end-tokens)
-            (parse-error "Illegal token: %s" current-token)))
+          (purescript-indentation-toplevel))
         possible-indentations))))
 
 (defun purescript-indentation-first-indentation ()
@@ -498,7 +476,7 @@ autofill-mode."
     ("newtype" . (lambda () (purescript-indentation-statement-right #'purescript-indentation-data)))
     ("class" . purescript-indentation-class-declaration)
     ("instance" . purescript-indentation-class-declaration)
-    ("else" . purescript-indentation-else-instance-declaration)))
+    ("else" . purescript-indentation-else-instance)))
 
 (defconst purescript-indentation-type-list
   '(("::"    . (lambda () (purescript-indentation-with-starter
@@ -717,8 +695,7 @@ autofill-mode."
                (purescript-indentation-add-indentation starter-indent))
              (when end (throw 'parse-end nil))) ;; add no indentations
             ((equal current-token end)
-             (purescript-indentation-read-next-token)) ;; continue
-            (end (parse-error "Illegal token: %s" current-token))))))
+             (purescript-indentation-read-next-token))))))
 
 (defun purescript-indentation-case ()
   (purescript-indentation-separated #'purescript-indentation-expression "," nil)
@@ -912,8 +889,7 @@ autofill-mode."
           (throw 'parse-end nil))
         (purescript-indentation-phrase-rest (cddr phrase))))
 
-     ((string= (cadr phrase) "in")) ;; fallthrough
-     (t (parse-error "Expecting %s" (cadr phrase))))))
+     ((string= (cadr phrase) "in"))))) ;; fallthrough
 
 (defun purescript-indentation-add-indentation (indent)
   (purescript-indentation-push-indentation
