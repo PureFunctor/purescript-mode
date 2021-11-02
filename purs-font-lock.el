@@ -383,7 +383,6 @@ Bird-style literate PureScript scripts are supported: If the value of
 of Moss&Thorn) is non-nil, a Bird-style literate script is assumed.
 
 Invokes `purs-font-lock-hook' if not nil."
-  (purs-font-lock-defaults-create)
   (run-hooks 'purs-font-lock-hook)
   (turn-on-font-lock))
 
