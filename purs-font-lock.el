@@ -130,17 +130,12 @@
 ;; other major modes, so I just exchanged with `purs-definition-face'.
 (defvar purs-operator-face 'font-lock-variable-name-face)
 (defvar purs-default-face nil)
-(defvar purs-literate-comment-face 'font-lock-doc-face
-  "Face with which to fontify literate comments.
-Set to `default' to avoid fontification of them.")
 
 ;; The font lock regular expressions.
 (defun purs-font-lock-keywords-create (literate)
   "Create fontification definitions for PureScript scripts.
 Returns keywords suitable for `font-lock-keywords'."
-  (let* (;; Bird-style literate scripts start a line of code with
-         ;; "^>", otherwise a line of code starts with "^".
-         (line-prefix (if (eq literate 'bird) "^> ?" "^"))
+  (let* ((line-prefix "^")
 
          ;; Most names are borrowed from the lexical syntax of the PureScript
          ;; report.
@@ -187,8 +182,7 @@ Returns keywords suitable for `font-lock-keywords'."
          (topdecl-var
           (concat line-prefix "\\(" varid "\\)\\s-*"
                   ;; optionally allow for a single newline after identifier
-                  ;; NOTE: not supported for bird-style .lpurs files
-                  (if (eq literate 'bird) nil "\\([\n]\\s-+\\)?")
+                  "\\([\n]\\s-+\\)?"
                   ;; A toplevel declaration can be followed by a definition
                   ;; (=), a type (::) or (∷), a guard, or a pattern which can
                   ;; either be a variable, a constructor, a parenthesized
@@ -258,67 +252,7 @@ Returns keywords suitable for `font-lock-keywords'."
             (,sym 0 (if (eq (char-after (match-beginning 0)) ?:)
                         purs-constructor-face
                       purs-operator-face))))
-    (unless (boundp 'font-lock-syntactic-keywords)
-      (cl-case literate
-        (bird
-         (setq keywords
-               `(("^[^>\n].*$" 0 purs-comment-face t)
-                 ,@keywords
-                 ("^>" 0 purs-default-face t))))
-        ((latex tex)
-         (setq keywords
-               `((purs-fl-latex-comments 0 'font-lock-comment-face t)
-                 ,@keywords)))))
     keywords))
-
-;; The next three aren't used in Emacs 21.
-
-(defvar purs-fl-latex-cache-pos nil
-  "Position of cache point used by `purs-fl-latex-cache-in-comment'.
-Should be at the start of a line.")
-
-(defvar purs-fl-latex-cache-in-comment nil
-  "If `purs-fl-latex-cache-pos' is outside a
-\\begin{code}..\\end{code} block (and therefore inside a comment),
-this variable is set to t, otherwise nil.")
-
-(defun purs-fl-latex-comments (end)
-  "Sets `match-data' according to the region of the buffer before end
-that should be commented under LaTeX-style literate scripts."
-  (let ((start (point)))
-    (if (= start end)
-        ;; We're at the end.  No more to fontify.
-        nil
-      (if (not (eq start purs-fl-latex-cache-pos))
-          ;; If the start position is not cached, calculate the state
-          ;; of the start.
-          (progn
-            (setq purs-fl-latex-cache-pos start)
-            ;; If the previous \begin{code} or \end{code} is a
-            ;; \begin{code}, then start is not in a comment, otherwise
-            ;; it is in a comment.
-            (setq purs-fl-latex-cache-in-comment
-                  (if (and
-                       (re-search-backward
-                        "^\\(\\(\\\\begin{code}\\)\\|\\(\\\\end{code}\\)\\)$"
-                        (point-min) t)
-                       (match-end 2))
-                      nil t))
-            ;; Restore position.
-            (goto-char start)))
-      (if purs-fl-latex-cache-in-comment
-          (progn
-            ;; If start is inside a comment, search for next \begin{code}.
-            (re-search-forward "^\\\\begin{code}$" end 'move)
-            ;; Mark start to end of \begin{code} (if present, till end
-            ;; otherwise), as a comment.
-            (set-match-data (list start (point)))
-            ;; Return point, as a normal regexp would.
-            (point))
-        ;; If start is inside a code block, search for next \end{code}.
-        (if (re-search-forward "^\\\\end{code}$" end t)
-            ;; If one found, mark it as a comment, otherwise finish.
-            (point))))))
 
 (defconst purs-basic-syntactic-keywords
   '(;; Character constants (since apostrophe can't have string syntax).
@@ -342,18 +276,6 @@ that should be commented under LaTeX-style literate scripts."
                              (t "_")))) ; other symbol sequence
     ))
 
-(defconst purs-bird-syntactic-keywords
-  (cons '("^[^\n>]"  (0 "<"))
-        purs-basic-syntactic-keywords))
-
-(defconst purs-latex-syntactic-keywords
-  (append
-   '(("^\\\\begin{code}\\(\n\\)" 1 "!")
-     ;; Note: buffer is widened during font-locking.
-     ("\\`\\(.\\|\n\\)" (1 "!"))               ; start comment at buffer start
-     ("^\\(\\\\\\)end{code}$" 1 "!"))
-   purs-basic-syntactic-keywords))
-
 (defcustom purs-font-lock-docstrings (boundp 'font-lock-doc-face)
   "If non-nil try to highlight docstring comments specially."
   :type 'boolean
@@ -362,17 +284,10 @@ that should be commented under LaTeX-style literate scripts."
 (defvar purs-font-lock-seen-docstring nil)
 (make-variable-buffer-local 'purs-font-lock-seen-docstring)
 
-(defvar purs-literate)
-
 (defun purs-syntactic-face-function (state)
   "`font-lock-syntactic-face-function' for PureScript."
   (cond
    ((nth 3 state) font-lock-string-face) ; as normal
-   ;; Else comment.  If it's from syntax table, use default face.
-   ((or (eq 'syntax-table (nth 7 state))
-        (and (eq purs-literate 'bird)
-             (memq (char-before (nth 8 state)) '(nil ?\n))))
-    purs-literate-comment-face)
    ;; Try and recognize docstring comments.  From what I gather from its
    ;; documentation, its comments can take the following forms:
    ;; a) {-| ... -}
@@ -410,39 +325,6 @@ that should be commented under LaTeX-style literate scripts."
 (defconst purs-font-lock-keywords
   (purs-font-lock-keywords-create nil)
   "Font lock definitions for non-literate PureScript.")
-
-(defconst purs-font-lock-bird-literate-keywords
-  (purs-font-lock-keywords-create 'bird)
-  "Font lock definitions for Bird-style literate PureScript.")
-
-(defconst purs-font-lock-latex-literate-keywords
-  (purs-font-lock-keywords-create 'latex)
-  "Font lock definitions for LaTeX-style literate PureScript.")
-
-;;;###autoload
-(defun purs-font-lock-choose-keywords ()
-  (cl-case (bound-and-true-p purs-literate)
-    (bird purs-font-lock-bird-literate-keywords)
-    ((latex tex) purs-font-lock-latex-literate-keywords)
-    (t purs-font-lock-keywords)))
-
-(defun purs-font-lock-choose-syntactic-keywords ()
-  (cl-case (bound-and-true-p purs-literate)
-    (bird purs-bird-syntactic-keywords)
-    ((latex tex) purs-latex-syntactic-keywords)
-    (t purs-basic-syntactic-keywords)))
-
-(defun purs-font-lock-defaults-create ()
-  "Locally set `font-lock-defaults' for PureScript."
-  (set (make-local-variable 'font-lock-defaults)
-       '(purs-font-lock-choose-keywords
-         nil nil ((?\' . "w") (?_  . "w")) nil
-         (font-lock-syntactic-keywords
-          . purs-font-lock-choose-syntactic-keywords)
-         (font-lock-syntactic-face-function
-          . purs-syntactic-face-function)
-         ;; Get help from font-lock-syntactic-keywords.
-         (parse-sexp-lookup-properties . t))))
 
 ;; The main functions.
 (defun turn-on-purs-font-lock ()

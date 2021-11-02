@@ -47,10 +47,6 @@
 (defconst purs-git-version "@GIT_VERSION@"
   "The Git version of `purs-mode'.")
 
-(defvar purs-mode-pkg-base-dir (file-name-directory load-file-name)
-  "Package base directory of installed `purs-mode'.
-Used for locating additional package data files.")
-
 ;;;###autoload
 (defun purs-version (&optional here)
   "Show the `purs-mode` version in the echo area.
@@ -68,16 +64,6 @@ When MESSAGE is non-nil, display a message with the version."
         (insert _version)
       (message "%s" _version))))
 
-;;;###autoload
-(defun purs-mode-view-news ()
-  "Display information on recent changes to purs-mode."
-  (interactive)
-  (with-current-buffer (find-file-read-only (expand-file-name "NEWS" purs-mode-pkg-base-dir))
-    (goto-char (point-min))
-    (outline-hide-sublevels 1)
-    (outline-next-visible-heading 1)
-    (outline-show-subtree)))
-
 (defgroup purs nil
   "Major mode for editing PureScript programs."
   :link '(custom-manual "(purs-mode)")
@@ -93,37 +79,15 @@ sure all purs customize definitions have been loaded."
   ;; make sure all modules with (defcustom ...)s are loaded
   (mapc 'require
         '(purs-indentation
-          purs-indent
-          purs-interactive-mode
-          purs-yas))
+          purs-indent))
   (customize-browse 'purs))
 
-;; Are we looking at a literate script?
-(defvar purs-literate nil
-  "*If not nil, the current buffer contains a literate PureScript script.
-Possible values are: `bird' and `tex', for Bird-style and LaTeX-style
-literate scripts respectively.  Set by `purs-mode' and
-`literate-purs-mode'.  For an ambiguous literate buffer -- i.e. does
-not contain either \"\\begin{code}\" or \"\\end{code}\" on a line on
-its own, nor does it contain \">\" at the start of a line -- the value
-of `purs-literate-default' is used.")
-(make-variable-buffer-local 'purs-literate)
-(put 'purs-literate 'safe-local-variable 'symbolp)
-;; Default literate style for ambiguous literate buffers.
-(defcustom purs-literate-default 'bird
-  "Default value for `purs-literate'.
-Used if the style of a literate buffer is ambiguous.  This variable should
-be set to the preferred literate style."
-  :group 'purs
-  :type '(choice (const bird) (const tex) (const nil)))
 ;;;###autoload
 (defvar purs-mode-map
   (let ((map (make-sparse-keymap)))
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; Editing-specific commands
     (define-key map (kbd "C-c C-.") 'purs-mode-format-imports)
-    (define-key map [remap delete-indentation] 'purs-delete-indentation)
-
     map)
   "Keymap used in PureScript mode.")
 
@@ -244,12 +208,6 @@ May return a qualified name."
         ;; This is it.
         (cons start end)))))
 
-(defun purs-delete-indentation (&optional arg)
-  "Like `delete-indentation' but ignoring Bird-style \">\"."
-  (interactive "*P")
-  (let ((fill-prefix (or fill-prefix (if (eq purs-literate 'bird) ">"))))
-    (delete-indentation arg)))
-
 ;; Various mode variables.
 
 (defcustom purs-mode-hook nil
@@ -259,12 +217,6 @@ Some of the supported modules that can be activated via this hook:
 
    `purs-indentation', Kristof Bastiaensen
      Intelligent semi-automatic indentation Mk2
-
-   `purs-indent', Guy Lapalme
-     Intelligent semi-automatic indentation.
-
-   `purs-simple-indent', Graeme E Moss and Heribert Schuetz
-     Simple indentation.
 
 Module X is activated using the command `turn-on-X'.  For example,
 `purs-indent' is activated using `turn-on-purs-indent'.
@@ -279,13 +231,7 @@ details."
   :type 'hook
   :group 'purs
   :link '(info-link "(purs-mode)purs-mode-hook")
-  :link '(function-link purs-mode)
-  :options `(capitalized-words-mode
-             turn-on-eldoc-mode
-             turn-on-purs-indent
-             turn-on-purs-indentation
-             turn-on-purs-simple-indent
-             turn-on-purs-unicode-input-method))
+  :link '(function-link purs-mode))
 
 (defvar eldoc-print-current-symbol-info-function)
 
@@ -296,11 +242,6 @@ details."
 
 See also Info node `(purs-mode)Getting Started' for more
 information about this mode.
-
-\\<purs-mode-map>
-Literate scripts are supported via `literate-purs-mode'.
-The variable `purs-literate' indicates the style of the script in the
-current buffer.  See the documentation on this variable for more details.
 
 Use `purs-version' to find out what version of PureScript mode you are
 currently using.
@@ -378,7 +319,6 @@ see documentation for that variable for more details."
         (end-of-line)
         (purs-fill-paragraph justify))))))
 
-
 ;; (defun purs-adaptive-fill ()
 ;;   ;; We want to use "--  " as the prefix of "-- |", etc.
 ;;   (let* ((line-end (save-excursion (end-of-line) (point)))
@@ -391,26 +331,6 @@ see documentation for that variable for more details."
 ;;         (let ();(prefix-start (point)))
 ;;           (skip-syntax-forward "^w")
 ;;           (make-string (- (point) line-start) ?\s))))))
-
-
-
-;;;###autoload
-(define-derived-mode literate-purs-mode purs-mode "LitPurs"
-  "As `purs-mode' but for literate scripts."
-  (setq purs-literate
-        (save-excursion
-          (goto-char (point-min))
-          (cond
-           ((re-search-forward "^\\\\\\(begin\\|end\\){code}$" nil t) 'tex)
-           ((re-search-forward "^>" nil t) 'bird)
-           (t purs-literate-default))))
-  (if (eq purs-literate 'bird)
-      ;; fill-comment-paragraph isn't much use there, and even gets confused
-      ;; by the syntax-table text-properties we add to mark the first char
-      ;; of each line as a comment-starter.
-      (set (make-local-variable 'fill-paragraph-handle-comment) nil))
-  (set (make-local-variable 'mode-line-process)
-       '("/" (:eval (symbol-name purs-literate)))))
 
 ;;;###autoload(add-to-list 'auto-mode-alist '("\\.purs\\'" . purs-mode))
 

@@ -26,7 +26,7 @@
 ;; To turn indentation on for all PureScript buffers under PureScript mode
 ;; <http://www.purescript.org/purescript-mode/> add this to .emacs:
 ;;
-;;    (add-hook purs-mode-hook 'turn-on-purs-indentation)
+;;    (add-hook purs-mode-hook 'purs-indentation-mode)
 ;;
 ;; Otherwise, call `purs-indentation-mode'.
 
@@ -47,7 +47,6 @@
 (defvar parse-line-number)
 (defvar possible-indentations)
 (defvar indentation-point)
-(defvar purs-literate)
 
 (defgroup purs-indentation nil
   "PureScript indentation."
@@ -105,12 +104,6 @@
   :type 'integer
   :group 'purs-indentation)
 
-(defcustom purs-indentation-birdtrack-extra-space t
-  "Append a space after every birdtrack in literate mode."
-  :type 'boolean
-  :group 'purs-indentation)
-
-
 ;; Avoid a global bogus definition (which the original run-time
 ;; `defun' made), and support Emacs 21 without the syntax.el add-on.
 (eval-when-compile
@@ -147,12 +140,6 @@ autofill-mode."
     (set (make-local-variable 'purs-indent-last-position)
          nil)))
 
-;;;###autoload
-(defun turn-on-purs-indentation ()
-  "Turn on the purs-indentation minor mode."
-  (interactive)
-  (purs-indentation-mode t))
-
 (defun purs-current-column ()
   "Compute current column according to purs syntax rules,
   correctly ignoring composition."
@@ -175,8 +162,6 @@ autofill-mode."
     (let ((auto-fill-function nil)
           (indent (car (last (purs-indentation-find-indentations)))))
       (newline)
-      (when (eq purs-literate 'bird)
-        (insert ">"))
       (indent-to indent)
       (end-of-line))))
 
@@ -184,56 +169,29 @@ autofill-mode."
   (beginning-of-line)
   (delete-region (point)
                  (progn
-                   (when (and (eq purs-literate 'bird)
-                              (eq (char-after) ?>))
-                     (forward-char))
                    (skip-syntax-forward "-")
                    (point)))
-  (when (eq purs-literate 'bird)
-    (insert ">"))
   (indent-to col))
 
 (defun purs-indentation-current-indentation ()
-  (if (eq purs-literate 'bird)
-      (save-excursion
-        (beginning-of-line)
-        (forward-char)
-        (skip-syntax-forward "-")
-        (current-column))
-    (current-indentation)))
-
-(defun purs-indentation-outside-bird-line ()
-  (and (eq purs-literate 'bird)
-       (or (< (current-column) 2)
-           (save-excursion
-             (beginning-of-line)
-             (not (eq (char-after) ?>))))))
+  (current-indentation))
 
 (defun purs-newline-and-indent ()
   (interactive)
-  (if (purs-indentation-outside-bird-line)
-      (progn
-        (delete-horizontal-space)
-        (newline))
-    (let* ((cc (purs-current-column))
-           (ci (purs-indentation-current-indentation))
-           (indentations (purs-indentation-find-indentations)))
-      (skip-syntax-forward "-")
-      (if (prog1 (and (eolp)
-                      (not (= (purs-current-column) ci)))
-            (delete-horizontal-space)
-            (if (not (eq purs-literate 'bird))
-                (newline)
-              (when purs-indentation-birdtrack-extra-space
-                (indent-to 2))
-              (newline)
-              (insert "> ")))
-          (purs-indentation-reindent
-           (max (purs-indentation-butlast indentations)
-                (purs-indentation-matching-indentation
-                 ci indentations)))
-        (purs-indentation-reindent (purs-indentation-matching-indentation
-                                          cc indentations))))))
+  (let* ((cc (purs-current-column))
+         (ci (purs-indentation-current-indentation))
+         (indentations (purs-indentation-find-indentations)))
+    (skip-syntax-forward "-")
+    (if (prog1 (and (eolp)
+                    (not (= (purs-current-column) ci)))
+          (delete-horizontal-space)
+          (newline))
+        (purs-indentation-reindent
+         (max (purs-indentation-butlast indentations)
+              (purs-indentation-matching-indentation
+               ci indentations)))
+      (purs-indentation-reindent (purs-indentation-matching-indentation
+                                  cc indentations)))))
 
 (defun purs-indentation-one-indentation (col indentations)
   (let* ((last-pair (last indentations)))
@@ -324,8 +282,6 @@ autofill-mode."
 (defun purs-indentation-delete-backward-char (n)
   (interactive "p")
   (cond
-   ((purs-indentation-outside-bird-line)
-    (delete-char (- n)))
    ((and (use-region-p)
          delete-active-region
          (not (= (point) (mark))))
@@ -355,66 +311,41 @@ autofill-mode."
 
 (defun purs-indentation-delete-char (n)
   (interactive "p")
-  (if (purs-indentation-outside-bird-line)
-      (delete-char n)
-    (cond
-     ((and delete-selection-mode
-           mark-active
-           (not (= (point) (mark))))
-      (delete-region (mark) (point)))
-     ((and (eq purs-literate 'bird)
-           (looking-at "\n> "))
-      (delete-char (+ n 2)))
-     ((or (eolp)
-          (>= (purs-current-column) (purs-indentation-current-indentation))
-          (nth 8 (syntax-ppss)))
-      (delete-char n))
-     (purs-indentation-delete-indentation
-      (let* ((ci (purs-indentation-current-indentation))
-             (float-pi (purs-indentation-previous-indentation
-                  ci (purs-indentation-find-indentations))))
-        (save-excursion
-          (if (and float-pi (> float-pi (purs-current-column)))
-              (move-to-column float-pi))
-          (delete-region (point)
-                         (progn (move-to-column ci)
-                                (point))))))
-     (t (delete-char (- n))))))
+  (cond
+   ((and delete-selection-mode
+         mark-active
+         (not (= (point) (mark))))
+    (delete-region (mark) (point)))
+   ((or (eolp)
+        (>= (purs-current-column) (purs-indentation-current-indentation))
+        (nth 8 (syntax-ppss)))
+    (delete-char n))
+   (purs-indentation-delete-indentation
+    (let* ((ci (purs-indentation-current-indentation))
+           (float-pi (purs-indentation-previous-indentation
+                      ci (purs-indentation-find-indentations))))
+      (save-excursion
+        (if (and float-pi (> float-pi (purs-current-column)))
+            (move-to-column float-pi))
+        (delete-region (point)
+                       (progn (move-to-column ci)
+                              (point))))))
+   (t (delete-char (- n)))))
 
 (defun purs-indentation-goto-least-indentation ()
   (beginning-of-line)
-  (if (eq purs-literate 'bird)
-      (catch 'return
-        (while t
-          (when (not (eq (char-after) ?>))
-            (forward-line)
-            (forward-char 2)
-            (throw 'return nil))
-          (let ((ps (nth 8 (syntax-ppss))))
-            (when ps ;; inside comment or string
-              (goto-char ps)
-              (beginning-of-line)))
-          (when (and (>= 2 (purs-indentation-current-indentation))
-                     (not (looking-at ">\\s-*$")))
-            (forward-char 2)
-            (throw 'return nil))
-          (when (bobp)
-            (forward-char 2)
-            (throw 'return nil))
-          (forward-line -1)))
-    ;; not bird style
-    (catch 'return
-      (while (not (bobp))
-        (forward-comment (- (buffer-size)))
-        (beginning-of-line)
-        (let ((ps (nth 8 (syntax-ppss))))
-          (when ps ;; inside comment or string
-            (goto-char ps)))
-        (when (= 0 (purs-indentation-current-indentation))
-          (throw 'return nil))))
-    (beginning-of-line)
-    (when (bobp)
-      (forward-comment (buffer-size)))))
+  (catch 'return
+    (while (not (bobp))
+      (forward-comment (- (buffer-size)))
+      (beginning-of-line)
+      (let ((ps (nth 8 (syntax-ppss))))
+        (when ps ;; inside comment or string
+          (goto-char ps)))
+      (when (= 0 (purs-indentation-current-indentation))
+        (throw 'return nil))))
+  (beginning-of-line)
+  (when (bobp)
+    (forward-comment (buffer-size))))
 
 (defun purs-indentation-parse-to-indentations ()
   (save-excursion
@@ -438,7 +369,7 @@ autofill-mode."
         possible-indentations))))
 
 (defun purs-indentation-first-indentation ()
-  (if (eq purs-literate 'bird) '(2) '(0)))
+  '(0))
 
 (defun purs-indentation-find-indentations ()
   (let ((ppss (syntax-ppss)))
@@ -990,12 +921,7 @@ autofill-mode."
         (goto-char (match-end 0))
       ;; otherwise skip until space found
       (skip-syntax-forward "^-"))
-    (forward-comment (buffer-size))
-    (while (and (eq purs-literate 'bird)
-                (bolp)
-                (eq (char-after) ?>))
-      (forward-char)
-      (forward-comment (buffer-size)))))
+    (forward-comment (buffer-size))))
 
 (provide 'purs-indentation)
 
