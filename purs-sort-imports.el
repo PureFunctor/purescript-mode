@@ -1,4 +1,4 @@
-;;; purescript-sort-imports.el --- Sort the list of PureScript imports at the point alphabetically
+;;; purs-sort-imports.el --- Sort the list of PureScript imports at the point alphabetically
 
 ;; Copyright (C) 2010  Chris Done
 
@@ -30,53 +30,53 @@
 
 ;;; Code:
 
-(defvar purescript-sort-imports-regexp
+(defvar purs-sort-imports-regexp
   (concat "^import[ ]+"
           "\\(qualified \\)?"
           "[ ]*\\(\"[^\"]*\" \\)?"
           "[ ]*\\([A-Za-z0-9_.']*.*\\)"))
 
 ;;;###autoload
-(defun purescript-sort-imports ()
+(defun purs-sort-imports ()
   (interactive)
   "Sort the import list at point. It sorts the current group
 i.e. an import list separated by blank lines on either side.
 
 If the region is active, it will restrict the imports to sort
 within that region."
-  (when (purescript-sort-imports-at-import)
-    (let* ((points (purescript-sort-imports-decl-points))
+  (when (purs-sort-imports-at-import)
+    (let* ((points (purs-sort-imports-decl-points))
            (current-string (buffer-substring-no-properties (car points)
                                                            (cdr points)))
            (current-offset (- (point) (car points))))
       (if (region-active-p)
           (progn (goto-char (region-beginning))
-                 (purescript-sort-imports-goto-import-start))
-        (purescript-sort-imports-goto-group-start))
+                 (purs-sort-imports-goto-import-start))
+        (purs-sort-imports-goto-group-start))
       (let ((start (point))
-            (imports (purescript-sort-imports-collect-imports)))
+            (imports (purs-sort-imports-collect-imports)))
         (delete-region start (point))
         (mapc (lambda (import)
                 (insert import "\n"))
               (sort imports (lambda (a b)
-                              (string< (purescript-sort-imports-normalize a)
-                                       (purescript-sort-imports-normalize b)))))
+                              (string< (purs-sort-imports-normalize a)
+                                       (purs-sort-imports-normalize b)))))
         (goto-char start)
         (when (search-forward current-string nil t 1)
           (forward-char (- (length current-string)))
           (forward-char current-offset))))))
 
-(defun purescript-sort-imports-normalize (i)
+(defun purs-sort-imports-normalize (i)
   "Normalize an import, if possible, so that it can be sorted."
-  (if (string-match purescript-sort-imports-regexp
+  (if (string-match purs-sort-imports-regexp
                     i)
       (match-string 3 i)
     i))
 
-(defun purescript-sort-imports-collect-imports ()
+(defun purs-sort-imports-collect-imports ()
   (let ((imports (list)))
     (while (looking-at "import")
-      (let* ((points (purescript-sort-imports-decl-points))
+      (let* ((points (purs-sort-imports-decl-points))
              (string (buffer-substring-no-properties (car points)
                                                      (cdr points))))
         (goto-char (min (1+ (cdr points))
@@ -84,7 +84,7 @@ within that region."
         (setq imports (cons string imports))))
     imports))
 
-(defun purescript-sort-imports-goto-group-start ()
+(defun purs-sort-imports-goto-group-start ()
   "Go to the start of the import group."
   (or (and (search-backward "\n\n" nil t 1)
            (goto-char (+ 2 (line-end-position))))
@@ -92,17 +92,17 @@ within that region."
         (goto-char (1+ (line-end-position))))
       (goto-char (point-min))))
 
-(defun purescript-sort-imports-at-import ()
+(defun purs-sort-imports-at-import ()
   "Are we at an import?"
   (save-excursion
-    (purescript-sort-imports-goto-import-start)
+    (purs-sort-imports-goto-import-start)
     (looking-at "import")))
 
-(defun purescript-sort-imports-goto-import-start ()
+(defun purs-sort-imports-goto-import-start ()
   "Go to the start of the import."
-  (goto-char (car (purescript-sort-imports-decl-points))))
+  (goto-char (car (purs-sort-imports-decl-points))))
 
-(defun purescript-sort-imports-decl-points ()
+(defun purs-sort-imports-decl-points ()
   "Get the points of the declaration."
   (save-excursion
     (let ((start (or (progn (goto-char (line-end-position))
@@ -121,6 +121,6 @@ within that region."
                           (point-max)))))
       (cons start end))))
 
-(provide 'purescript-sort-imports)
+(provide 'purs-sort-imports)
 
-;;; purescript-sort-imports.el ends here
+;;; purs-sort-imports.el ends here

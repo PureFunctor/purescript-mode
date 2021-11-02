@@ -1,5 +1,5 @@
 ;;;###autoload
-(defun purescript-trim (string)
+(defun purs-trim (string)
   (replace-regexp-in-string
    "^[ \t\n]+" ""
    (replace-regexp-in-string
@@ -7,17 +7,17 @@
     string)))
 
 ;;;###autoload
-(defun purescript-string-take (string n)
+(defun purs-string-take (string n)
   "Take n chars from string."
   (substring string
              0
              (min (length string) n)))
 
 ;;;###autoload
-(defun purescript-is-prefix-of (x y)
+(defun purs-is-prefix-of (x y)
   "Is x string a prefix of y string?"
   (string= x (substring y 0 (min (length y) (length x)))))
 
-(defun purescript-string ())
+(defun purs-string ())
 
-(provide 'purescript-string)
+(provide 'purs-string)

@@ -36,15 +36,15 @@
 ;; To turn font locking on for all PureScript buffers under the PureScript
 ;; mode of Moss&Thorn, add this to .emacs:
 ;;
-;;    (add-hook 'purescript-mode-hook 'turn-on-purescript-font-lock)
+;;    (add-hook 'purs-mode-hook 'turn-on-purs-font-lock)
 ;;
-;; Otherwise, call `turn-on-purescript-font-lock'.
+;; Otherwise, call `turn-on-purs-font-lock'.
 ;;
 ;;
 ;; Customisation:
 ;;
 ;; The colours and level of font locking may be customised.  See the
-;; documentation on `turn-on-purescript-font-lock' for more details.
+;; documentation on `turn-on-purs-font-lock' for more details.
 ;;
 ;; Present Limitations/Future Work (contributions are most welcome!):
 ;;
@@ -60,7 +60,7 @@
 ;;
 ;;
 ;; All functions/variables start with
-;; `(turn-(on/off)-)purescript-font-lock' or `purescript-fl-'.
+;; `(turn-(on/off)-)purs-font-lock' or `purs-fl-'.
 
 ;;; Change Log:
 
@@ -83,14 +83,14 @@
 ;;   in comments.
 ;;
 ;; Version 1.0:
-;;   Brought over from PureScript mode v1.1.
+;;   Brought over from Purs mode v1.1.
 
 ;;; Code:
 
 (require 'font-lock)
 (require 'cl-lib)
 
-(defcustom purescript-font-lock-prettify-symbols-alist
+(defcustom purs-font-lock-prettify-symbols-alist
   `(("/\\" . ,(decode-char 'ucs #X2227))
     ("\\" . ,(decode-char 'ucs 955))
     ("not" . ,(decode-char 'ucs 172))
@@ -107,35 +107,35 @@
     ("&&" . ,(decode-char 'ucs #X2227))
     ("||" . ,(decode-char 'ucs #X2228))
     ("sqrt" . ,(decode-char 'ucs #X221A))
-    ("undefined" . ,(decode-char 'ucs #X22A5)) ;; Not really needed for Purescript
+    ("undefined" . ,(decode-char 'ucs #X22A5)) ;; Not really needed for PureScript
     ("pi" . ,(decode-char 'ucs #X3C0))
     ("~>" . ,(decode-char 'ucs 8669)) ;; Omega language
     ("-<" . ,(decode-char 'ucs 8610)) ;; Paterson's arrow syntax
     ("::" . ,(decode-char 'ucs 8759))
     ("forall" . ,(decode-char 'ucs 8704)))
   "A set of symbol compositions for use as `prettify-symbols-alist'."
-  :group 'purescript
+  :group 'purs
   :type '(repeat (cons string character)))
 
 ;; Use new vars for the font-lock faces.  The indirection allows people to
 ;; use different faces than in other modes, as before.
-(defvar purescript-keyword-face 'font-lock-keyword-face)
-(defvar purescript-constructor-face 'font-lock-type-face)
+(defvar purs-keyword-face 'font-lock-keyword-face)
+(defvar purs-constructor-face 'font-lock-type-face)
 ;; This used to be `font-lock-variable-name-face' but it doesn't result in
 ;; a highlighting that's consistent with other modes (it's mostly used
 ;; for function defintions).
-(defvar purescript-definition-face 'font-lock-function-name-face)
+(defvar purs-definition-face 'font-lock-function-name-face)
 ;; This is probably just wrong, but it used to use
 ;; `font-lock-function-name-face' with a result that was not consistent with
-;; other major modes, so I just exchanged with `purescript-definition-face'.
-(defvar purescript-operator-face 'font-lock-variable-name-face)
-(defvar purescript-default-face nil)
-(defvar purescript-literate-comment-face 'font-lock-doc-face
+;; other major modes, so I just exchanged with `purs-definition-face'.
+(defvar purs-operator-face 'font-lock-variable-name-face)
+(defvar purs-default-face nil)
+(defvar purs-literate-comment-face 'font-lock-doc-face
   "Face with which to fontify literate comments.
 Set to `default' to avoid fontification of them.")
 
 ;; The font lock regular expressions.
-(defun purescript-font-lock-keywords-create (literate)
+(defun purs-font-lock-keywords-create (literate)
   "Create fontification definitions for PureScript scripts.
 Returns keywords suitable for `font-lock-keywords'."
   (let* (;; Bird-style literate scripts start a line of code with
@@ -210,94 +210,94 @@ Returns keywords suitable for `font-lock-keywords'."
             ("^>>>>>>> .*$" 0 'font-lock-warning-face t)
             ("^#.*$" 0 'font-lock-preprocessor-face t)
 
-            (,reservedid 1 (symbol-value 'purescript-keyword-face))
-            (,reservedsym 1 (symbol-value 'purescript-operator-face))
+            (,reservedid 1 (symbol-value 'purs-keyword-face))
+            (,reservedsym 1 (symbol-value 'purs-operator-face))
             ;; Special case for `as', `hiding', `safe' and `qualified', which are
             ;; keywords in import statements but are not otherwise reserved.
             ("\\<import[ \t]+\\(?:\\(safe\\>\\)[ \t]*\\)?\\(?:\\(qualified\\>\\)[ \t]*\\)?[^ \t\n()]+[ \t]*\\(?:\\(\\<as\\>\\)[ \t]*[^ \t\n()]+[ \t]*\\)?\\(\\<hiding\\>\\)?"
-             (1 (symbol-value 'purescript-keyword-face) nil lax)
-             (2 (symbol-value 'purescript-keyword-face) nil lax)
-             (3 (symbol-value 'purescript-keyword-face) nil lax)
-             (4 (symbol-value 'purescript-keyword-face) nil lax))
+             (1 (symbol-value 'purs-keyword-face) nil lax)
+             (2 (symbol-value 'purs-keyword-face) nil lax)
+             (3 (symbol-value 'purs-keyword-face) nil lax)
+             (4 (symbol-value 'purs-keyword-face) nil lax))
 
-            (,reservedsym 1 (symbol-value 'purescript-operator-face))
+            (,reservedsym 1 (symbol-value 'purs-operator-face))
             ;; Special case for `foreign import'
             ;; keywords in foreign import statements but are not otherwise reserved.
             ("\\<\\(foreign\\)[ \t]+\\(import\\)[ \t]+\\(?:\\(ccall\\|stdcall\\|cplusplus\\|jvm\\|dotnet\\)[ \t]+\\)?\\(?:\\(safe\\|unsafe\\|interruptible\\)[ \t]+\\)?"
-             (1 (symbol-value 'purescript-keyword-face) nil lax)
-             (2 (symbol-value 'purescript-keyword-face) nil lax)
-             (3 (symbol-value 'purescript-keyword-face) nil lax)
-             (4 (symbol-value 'purescript-keyword-face) nil lax))
+             (1 (symbol-value 'purs-keyword-face) nil lax)
+             (2 (symbol-value 'purs-keyword-face) nil lax)
+             (3 (symbol-value 'purs-keyword-face) nil lax)
+             (4 (symbol-value 'purs-keyword-face) nil lax))
 
-            (,reservedsym 1 (symbol-value 'purescript-operator-face))
+            (,reservedsym 1 (symbol-value 'purs-operator-face))
             ;; Special case for `foreign export'
             ;; keywords in foreign export statements but are not otherwise reserved.
             ("\\<\\(foreign\\)[ \t]+\\(export\\)[ \t]+\\(?:\\(ccall\\|stdcall\\|cplusplus\\|jvm\\|dotnet\\)[ \t]+\\)?"
-             (1 (symbol-value 'purescript-keyword-face) nil lax)
-             (2 (symbol-value 'purescript-keyword-face) nil lax)
-             (3 (symbol-value 'purescript-keyword-face) nil lax))
+             (1 (symbol-value 'purs-keyword-face) nil lax)
+             (2 (symbol-value 'purs-keyword-face) nil lax)
+             (3 (symbol-value 'purs-keyword-face) nil lax))
 
             ;; Toplevel Declarations.
             ;; Place them *before* generic id-and-op highlighting.
-            (,topdecl-var  (1 (symbol-value 'purescript-definition-face)))
-            (,topdecl-var2 (2 (symbol-value 'purescript-definition-face)))
-            (,topdecl-sym  (2 (symbol-value 'purescript-definition-face)))
-            (,topdecl-sym2 (1 (symbol-value 'purescript-definition-face)))
+            (,topdecl-var  (1 (symbol-value 'purs-definition-face)))
+            (,topdecl-var2 (2 (symbol-value 'purs-definition-face)))
+            (,topdecl-sym  (2 (symbol-value 'purs-definition-face)))
+            (,topdecl-sym2 (1 (symbol-value 'purs-definition-face)))
 
             ;; These four are debatable...
-            ("(\\(,*\\|->\\))" 0 (symbol-value 'purescript-constructor-face))
-            ("\\[\\]" 0 (symbol-value 'purescript-constructor-face))
+            ("(\\(,*\\|->\\))" 0 (symbol-value 'purs-constructor-face))
+            ("\\[\\]" 0 (symbol-value 'purs-constructor-face))
             ;; Expensive.
-            (,qvarid 0 (symbol-value 'purescript-default-face))
-            (,qconid 0 (symbol-value 'purescript-constructor-face))
-            (,(concat "\`" varid "\`") 0 (symbol-value 'purescript-operator-face))
+            (,qvarid 0 (symbol-value 'purs-default-face))
+            (,qconid 0 (symbol-value 'purs-constructor-face))
+            (,(concat "\`" varid "\`") 0 (symbol-value 'purs-operator-face))
             ;; Expensive.
-            (,conid 0 (symbol-value 'purescript-constructor-face))
+            (,conid 0 (symbol-value 'purs-constructor-face))
 
             ;; Very expensive.
             (,sym 0 (if (eq (char-after (match-beginning 0)) ?:)
-                        purescript-constructor-face
-                      purescript-operator-face))))
+                        purs-constructor-face
+                      purs-operator-face))))
     (unless (boundp 'font-lock-syntactic-keywords)
       (cl-case literate
         (bird
          (setq keywords
-               `(("^[^>\n].*$" 0 purescript-comment-face t)
+               `(("^[^>\n].*$" 0 purs-comment-face t)
                  ,@keywords
-                 ("^>" 0 purescript-default-face t))))
+                 ("^>" 0 purs-default-face t))))
         ((latex tex)
          (setq keywords
-               `((purescript-fl-latex-comments 0 'font-lock-comment-face t)
+               `((purs-fl-latex-comments 0 'font-lock-comment-face t)
                  ,@keywords)))))
     keywords))
 
 ;; The next three aren't used in Emacs 21.
 
-(defvar purescript-fl-latex-cache-pos nil
-  "Position of cache point used by `purescript-fl-latex-cache-in-comment'.
+(defvar purs-fl-latex-cache-pos nil
+  "Position of cache point used by `purs-fl-latex-cache-in-comment'.
 Should be at the start of a line.")
 
-(defvar purescript-fl-latex-cache-in-comment nil
-  "If `purescript-fl-latex-cache-pos' is outside a
+(defvar purs-fl-latex-cache-in-comment nil
+  "If `purs-fl-latex-cache-pos' is outside a
 \\begin{code}..\\end{code} block (and therefore inside a comment),
 this variable is set to t, otherwise nil.")
 
-(defun purescript-fl-latex-comments (end)
+(defun purs-fl-latex-comments (end)
   "Sets `match-data' according to the region of the buffer before end
 that should be commented under LaTeX-style literate scripts."
   (let ((start (point)))
     (if (= start end)
         ;; We're at the end.  No more to fontify.
         nil
-      (if (not (eq start purescript-fl-latex-cache-pos))
+      (if (not (eq start purs-fl-latex-cache-pos))
           ;; If the start position is not cached, calculate the state
           ;; of the start.
           (progn
-            (setq purescript-fl-latex-cache-pos start)
+            (setq purs-fl-latex-cache-pos start)
             ;; If the previous \begin{code} or \end{code} is a
             ;; \begin{code}, then start is not in a comment, otherwise
             ;; it is in a comment.
-            (setq purescript-fl-latex-cache-in-comment
+            (setq purs-fl-latex-cache-in-comment
                   (if (and
                        (re-search-backward
                         "^\\(\\(\\\\begin{code}\\)\\|\\(\\\\end{code}\\)\\)$"
@@ -306,7 +306,7 @@ that should be commented under LaTeX-style literate scripts."
                       nil t))
             ;; Restore position.
             (goto-char start)))
-      (if purescript-fl-latex-cache-in-comment
+      (if purs-fl-latex-cache-in-comment
           (progn
             ;; If start is inside a comment, search for next \begin{code}.
             (re-search-forward "^\\\\begin{code}$" end 'move)
@@ -320,7 +320,7 @@ that should be commented under LaTeX-style literate scripts."
             ;; If one found, mark it as a comment, otherwise finish.
             (point))))))
 
-(defconst purescript-basic-syntactic-keywords
+(defconst purs-basic-syntactic-keywords
   '(;; Character constants (since apostrophe can't have string syntax).
     ;; Beware: do not match something like 's-}' or '\n"+' since the first '
     ;; might be inside a comment or a string.
@@ -342,37 +342,37 @@ that should be commented under LaTeX-style literate scripts."
                              (t "_")))) ; other symbol sequence
     ))
 
-(defconst purescript-bird-syntactic-keywords
+(defconst purs-bird-syntactic-keywords
   (cons '("^[^\n>]"  (0 "<"))
-        purescript-basic-syntactic-keywords))
+        purs-basic-syntactic-keywords))
 
-(defconst purescript-latex-syntactic-keywords
+(defconst purs-latex-syntactic-keywords
   (append
    '(("^\\\\begin{code}\\(\n\\)" 1 "!")
      ;; Note: buffer is widened during font-locking.
      ("\\`\\(.\\|\n\\)" (1 "!"))               ; start comment at buffer start
      ("^\\(\\\\\\)end{code}$" 1 "!"))
-   purescript-basic-syntactic-keywords))
+   purs-basic-syntactic-keywords))
 
-(defcustom purescript-font-lock-docstrings (boundp 'font-lock-doc-face)
+(defcustom purs-font-lock-docstrings (boundp 'font-lock-doc-face)
   "If non-nil try to highlight docstring comments specially."
   :type 'boolean
-  :group 'purescript)
+  :group 'purs)
 
-(defvar purescript-font-lock-seen-docstring nil)
-(make-variable-buffer-local 'purescript-font-lock-seen-docstring)
+(defvar purs-font-lock-seen-docstring nil)
+(make-variable-buffer-local 'purs-font-lock-seen-docstring)
 
-(defvar purescript-literate)
+(defvar purs-literate)
 
-(defun purescript-syntactic-face-function (state)
+(defun purs-syntactic-face-function (state)
   "`font-lock-syntactic-face-function' for PureScript."
   (cond
    ((nth 3 state) font-lock-string-face) ; as normal
    ;; Else comment.  If it's from syntax table, use default face.
    ((or (eq 'syntax-table (nth 7 state))
-        (and (eq purescript-literate 'bird)
+        (and (eq purs-literate 'bird)
              (memq (char-before (nth 8 state)) '(nil ?\n))))
-    purescript-literate-comment-face)
+    purs-literate-comment-face)
    ;; Try and recognize docstring comments.  From what I gather from its
    ;; documentation, its comments can take the following forms:
    ;; a) {-| ... -}
@@ -388,11 +388,11 @@ that should be commented under LaTeX-style literate scripts."
    ;; requires extra work for each and every non-docstring comment, so I only
    ;; go through the more expensive check if we've already seen a docstring
    ;; comment in the buffer.
-   ((and purescript-font-lock-docstrings
+   ((and purs-font-lock-docstrings
          (save-excursion
            (goto-char (nth 8 state))
            (or (looking-at "\\(-- \\|{-\\)[ \\t]*[|^]")
-               (and purescript-font-lock-seen-docstring
+               (and purs-font-lock-seen-docstring
                     (looking-at "-- ")
                     (let ((doc nil)
                           pos)
@@ -403,66 +403,66 @@ that should be commented under LaTeX-style literate scripts."
                                   (looking-at "--\\( [|^]\\)?"))
                         (setq doc (match-beginning 1)))
                       doc)))))
-    (set (make-local-variable 'purescript-font-lock-seen-docstring) t)
+    (set (make-local-variable 'purs-font-lock-seen-docstring) t)
     font-lock-doc-face)
    (t font-lock-comment-face)))
 
-(defconst purescript-font-lock-keywords
-  (purescript-font-lock-keywords-create nil)
+(defconst purs-font-lock-keywords
+  (purs-font-lock-keywords-create nil)
   "Font lock definitions for non-literate PureScript.")
 
-(defconst purescript-font-lock-bird-literate-keywords
-  (purescript-font-lock-keywords-create 'bird)
+(defconst purs-font-lock-bird-literate-keywords
+  (purs-font-lock-keywords-create 'bird)
   "Font lock definitions for Bird-style literate PureScript.")
 
-(defconst purescript-font-lock-latex-literate-keywords
-  (purescript-font-lock-keywords-create 'latex)
+(defconst purs-font-lock-latex-literate-keywords
+  (purs-font-lock-keywords-create 'latex)
   "Font lock definitions for LaTeX-style literate PureScript.")
 
 ;;;###autoload
-(defun purescript-font-lock-choose-keywords ()
-  (cl-case (bound-and-true-p purescript-literate)
-    (bird purescript-font-lock-bird-literate-keywords)
-    ((latex tex) purescript-font-lock-latex-literate-keywords)
-    (t purescript-font-lock-keywords)))
+(defun purs-font-lock-choose-keywords ()
+  (cl-case (bound-and-true-p purs-literate)
+    (bird purs-font-lock-bird-literate-keywords)
+    ((latex tex) purs-font-lock-latex-literate-keywords)
+    (t purs-font-lock-keywords)))
 
-(defun purescript-font-lock-choose-syntactic-keywords ()
-  (cl-case (bound-and-true-p purescript-literate)
-    (bird purescript-bird-syntactic-keywords)
-    ((latex tex) purescript-latex-syntactic-keywords)
-    (t purescript-basic-syntactic-keywords)))
+(defun purs-font-lock-choose-syntactic-keywords ()
+  (cl-case (bound-and-true-p purs-literate)
+    (bird purs-bird-syntactic-keywords)
+    ((latex tex) purs-latex-syntactic-keywords)
+    (t purs-basic-syntactic-keywords)))
 
-(defun purescript-font-lock-defaults-create ()
+(defun purs-font-lock-defaults-create ()
   "Locally set `font-lock-defaults' for PureScript."
   (set (make-local-variable 'font-lock-defaults)
-       '(purescript-font-lock-choose-keywords
+       '(purs-font-lock-choose-keywords
          nil nil ((?\' . "w") (?_  . "w")) nil
          (font-lock-syntactic-keywords
-          . purescript-font-lock-choose-syntactic-keywords)
+          . purs-font-lock-choose-syntactic-keywords)
          (font-lock-syntactic-face-function
-          . purescript-syntactic-face-function)
+          . purs-syntactic-face-function)
          ;; Get help from font-lock-syntactic-keywords.
          (parse-sexp-lookup-properties . t))))
 
 ;; The main functions.
-(defun turn-on-purescript-font-lock ()
+(defun turn-on-purs-font-lock ()
   "Turns on font locking in current buffer for PureScript 1.4 scripts.
 
 Changes the current buffer's `font-lock-defaults', and adds the
 following variables:
 
-   `purescript-keyword-face'      for reserved keywords and syntax,
-   `purescript-constructor-face'  for data- and type-constructors, class names,
+   `purs-keyword-face'      for reserved keywords and syntax,
+   `purs-constructor-face'  for data- and type-constructors, class names,
                                and module names,
-   `purescript-operator-face'     for symbolic and alphanumeric operators,
-   `purescript-default-face'      for ordinary code.
+   `purs-operator-face'     for symbolic and alphanumeric operators,
+   `purs-default-face'      for ordinary code.
 
 The variables are initialised to the following font lock default faces:
 
-   `purescript-keyword-face'      `font-lock-keyword-face'
-   `purescript-constructor-face'  `font-lock-type-face'
-   `purescript-operator-face'     `font-lock-function-name-face'
-   `purescript-default-face'      <default face>
+   `purs-keyword-face'      `font-lock-keyword-face'
+   `purs-constructor-face'  `font-lock-type-face'
+   `purs-operator-face'     `font-lock-function-name-face'
+   `purs-default-face'      <default face>
 
 Two levels of fontification are defined: level one (the default)
 and level two (more colour).  The former does not colour operators.
@@ -470,9 +470,9 @@ Use the variable `font-lock-maximum-decoration' to choose
 non-default levels of fontification.  For example, adding this to
 .emacs:
 
-  (setq font-lock-maximum-decoration '((purescript-mode . 2) (t . 0)))
+  (setq font-lock-maximum-decoration '((purs-mode . 2) (t . 0)))
 
-uses level two fontification for `purescript-mode' and default level for
+uses level two fontification for `purs-mode' and default level for
 all other modes.  See documentation on this variable for further
 details.
 
@@ -480,9 +480,9 @@ To alter an attribute of a face, add a hook.  For example, to change
 the foreground colour of comments to brown, add the following line to
 .emacs:
 
-  (add-hook 'purescript-font-lock-hook
+  (add-hook 'purs-font-lock-hook
       (lambda ()
-          (set-face-foreground 'purescript-comment-face \"brown\")))
+          (set-face-foreground 'purs-comment-face \"brown\")))
 
 Note that the colours available vary from system to system.  To see
 what colours are available on your system, call
@@ -490,31 +490,31 @@ what colours are available on your system, call
 
 To turn font locking on for all PureScript buffers, add this to .emacs:
 
-  (add-hook 'purescript-mode-hook 'turn-on-purescript-font-lock)
+  (add-hook 'purs-mode-hook 'turn-on-purs-font-lock)
 
 To turn font locking on for the current buffer, call
-`turn-on-purescript-font-lock'.  To turn font locking off in the current
-buffer, call `turn-off-purescript-font-lock'.
+`turn-on-purs-font-lock'.  To turn font locking off in the current
+buffer, call `turn-off-purs-font-lock'.
 
 Bird-style literate PureScript scripts are supported: If the value of
-`purescript-literate-bird-style' (automatically set by the PureScript mode
+`purs-literate-bird-style' (automatically set by the PureScript mode
 of Moss&Thorn) is non-nil, a Bird-style literate script is assumed.
 
-Invokes `purescript-font-lock-hook' if not nil."
-  (purescript-font-lock-defaults-create)
-  (run-hooks 'purescript-font-lock-hook)
+Invokes `purs-font-lock-hook' if not nil."
+  (purs-font-lock-defaults-create)
+  (run-hooks 'purs-font-lock-hook)
   (turn-on-font-lock))
 
-(defun turn-off-purescript-font-lock ()
+(defun turn-off-purs-font-lock ()
   "Turns off font locking in current buffer."
   (font-lock-mode -1))
 
 ;; Provide ourselves:
 
-(provide 'purescript-font-lock)
+(provide 'purs-font-lock)
 
 ;; Local Variables:
 ;; tab-width: 8
 ;; End:
 
-;;; purescript-font-lock.el ends here
+;;; purs-font-lock.el ends here

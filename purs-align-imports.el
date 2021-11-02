@@ -1,4 +1,4 @@
-;;; purescript-align-imports.el --- Align the import lines in a PureScript file
+;;; purs-align-imports.el --- Align the import lines in a PureScript file
 
 ;; Copyright (C) 2010  Chris Done
 
@@ -45,7 +45,7 @@
 ;; import "abc" Nineteen hiding (A)
 ;; import "abc" Twenty as TWO hiding (A)
 ;;
-;; When purescript-align-imports is run within the same buffer, the
+;; When purs-align-imports is run within the same buffer, the
 ;; import list is transformed to:
 ;;
 ;; import "abc"            Eight
@@ -70,7 +70,7 @@
 ;; import                  Two as A
 ;;
 ;; If you want everything after module names to be padded out, too,
-;; customize `purescript-align-imports-pad-after-name', and you'll get:
+;; customize `purs-align-imports-pad-after-name', and you'll get:
 ;;
 ;; import                  One
 ;; import                  Two       as A
@@ -97,7 +97,7 @@
 
 (require 'cl-lib)
 
-(defvar purescript-align-imports-regexp
+(defvar purs-align-imports-regexp
   (concat "^\\(import[ ]+\\)"
           "\\(qualified \\)?"
           "[ ]*\\(\"[^\"]*\" \\)?"
@@ -108,30 +108,30 @@
           "\\( -- .*\\)?[ ]*$")
   "Regex used for matching components of an import.")
 
-(defcustom purescript-align-imports-pad-after-name
+(defcustom purs-align-imports-pad-after-name
   nil
   "Pad layout after the module name also."
   :type 'boolean
-  :group 'purescript-interactive)
+  :group 'purs-interactive)
 
 ;;;###autoload
-(defun purescript-align-imports ()
+(defun purs-align-imports ()
   "Align all the imports in the buffer."
   (interactive)
-  (when (purescript-align-imports-line-match)
+  (when (purs-align-imports-line-match)
     (save-excursion
       (goto-char (point-min))
-      (let* ((imports (purescript-align-imports-collect))
-             (padding (purescript-align-imports-padding imports)))
+      (let* ((imports (purs-align-imports-collect))
+             (padding (purs-align-imports-padding imports)))
         (mapc (lambda (x)
                 (goto-char (cdr x))
                 (delete-region (point) (line-end-position))
-                (insert (purescript-align-imports-chomp
-                         (purescript-align-imports-fill padding (car x)))))
+                (insert (purs-align-imports-chomp
+                         (purs-align-imports-fill padding (car x)))))
               imports))))
   nil)
 
-(defun purescript-align-imports-line-match ()
+(defun purs-align-imports-line-match ()
   "Try to match the current line as a regexp."
   (let ((line (buffer-substring-no-properties (line-beginning-position)
                                               (line-end-position))))
@@ -139,22 +139,22 @@
         line
       nil)))
 
-(defun purescript-align-imports-collect ()
+(defun purs-align-imports-collect ()
   "Collect a list of mark / import statement pairs."
   (let ((imports '()))
-    (while (not (or (equal (point) (point-max)) (purescript-align-imports-after-imports-p)))
-      (let ((line (purescript-align-imports-line-match-it)))
+    (while (not (or (equal (point) (point-max)) (purs-align-imports-after-imports-p)))
+      (let ((line (purs-align-imports-line-match-it)))
         (when line
           (let ((match
-                 (purescript-align-imports-merge-parts
+                 (purs-align-imports-merge-parts
                   (cl-loop for i from 1 to 8
-                           collect (purescript-align-imports-chomp (match-string i line))))))
+                           collect (purs-align-imports-chomp (match-string i line))))))
             (setq imports (cons (cons match (line-beginning-position))
                                 imports)))))
       (forward-line))
     imports))
 
-(defun purescript-align-imports-merge-parts (l)
+(defun purs-align-imports-merge-parts (l)
   "Merge together parts of an import statement that shouldn't be separated."
   (let ((parts (apply #'vector l))
         (join (lambda (ls)
@@ -166,7 +166,7 @@
                                        "")
                                      b))
                            ls))))
-    (if purescript-align-imports-pad-after-name
+    (if purs-align-imports-pad-after-name
         (list (funcall join (list (aref parts 0)
                                   (aref parts 1)
                                   (aref parts 2)))
@@ -184,14 +184,14 @@
                                 (aref parts 6)
                                 (aref parts 7)))))))
 
-(defun purescript-align-imports-chomp (str)
+(defun purs-align-imports-chomp (str)
   "Chomp leading and tailing whitespace from STR."
   (if str
       (replace-regexp-in-string "\\(^[[:space:]\n]*\\|[[:space:]\n]*$\\)" ""
                                 str)
     ""))
 
-(defun purescript-align-imports-padding (imports)
+(defun purs-align-imports-padding (imports)
   "Find the padding for each part of the import statements."
   (if (null imports)
       imports
@@ -199,7 +199,7 @@
                (mapcar (lambda (x) (mapcar #'length (car x)))
                        imports))))
 
-(defun purescript-align-imports-fill (padding line)
+(defun purs-align-imports-fill (padding line)
   "Fill an import line using the padding worked out from all statements."
   (mapconcat #'identity
              (cl-mapcar (lambda (pad part)
@@ -210,21 +210,21 @@
                         line)
              " "))
 
-(defun purescript-align-imports-line-match-it ()
+(defun purs-align-imports-line-match-it ()
   "Try to match the current line as a regexp."
   (let ((line (buffer-substring-no-properties (line-beginning-position)
                                               (line-end-position))))
-    (if (string-match purescript-align-imports-regexp line)
+    (if (string-match purs-align-imports-regexp line)
         line
       nil)))
 
-(defun purescript-align-imports-after-imports-p ()
+(defun purs-align-imports-after-imports-p ()
   "Are we after the imports list?"
   (save-excursion
     (goto-char (line-beginning-position))
     (not (not (search-forward-regexp "\\( = \\|\\<instance\\>\\| :: \\)"
                                      (line-end-position) t 1)))))
 
-(provide 'purescript-align-imports)
+(provide 'purs-align-imports)
 
-;;; purescript-align-imports.el ends here
+;;; purs-align-imports.el ends here

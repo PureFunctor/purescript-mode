@@ -1,4 +1,4 @@
-;;; purescript-mode.el --- A PureScript editing mode    -*- coding: utf-8 -*-
+;;; purs-mode.el --- A PureScript editing mode    -*- coding: utf-8 -*-
 
 ;; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008  Free Software Foundation, Inc
 ;; Copyright (C) 1992, 1997-1998  Simon Marlow, Graeme E Moss, and Tommy Thorn
@@ -32,103 +32,103 @@
 (require 'dabbrev)
 (require 'compile)
 (require 'outline)
-(require 'purescript-align-imports)
-(require 'purescript-sort-imports)
-(require 'purescript-string)
-(require 'purescript-font-lock)
+(require 'purs-align-imports)
+(require 'purs-sort-imports)
+(require 'purs-string)
+(require 'purs-font-lock)
 (require 'cl-lib)
 
-;; All functions/variables start with `(literate-)purescript-'.
+;; All functions/variables start with `(literate-)purs-'.
 
 ;; Version of mode.
-(defconst purescript-version "@VERSION@"
-  "The release version of `purescript-mode'.")
+(defconst purs-version "@VERSION@"
+  "The release version of `purs-mode'.")
 
-(defconst purescript-git-version "@GIT_VERSION@"
-  "The Git version of `purescript-mode'.")
+(defconst purs-git-version "@GIT_VERSION@"
+  "The Git version of `purs-mode'.")
 
-(defvar purescript-mode-pkg-base-dir (file-name-directory load-file-name)
-  "Package base directory of installed `purescript-mode'.
+(defvar purs-mode-pkg-base-dir (file-name-directory load-file-name)
+  "Package base directory of installed `purs-mode'.
 Used for locating additional package data files.")
 
 ;;;###autoload
-(defun purescript-version (&optional here)
-  "Show the `purescript-mode` version in the echo area.
+(defun purs-version (&optional here)
+  "Show the `purs-mode` version in the echo area.
 With prefix argument HERE, insert it at point.
 When FULL is non-nil, use a verbose version string.
 When MESSAGE is non-nil, display a message with the version."
   (interactive "P")
-  (let* ((purescript-mode-dir (ignore-errors
-                             (file-name-directory (or (locate-library "purescript-mode") ""))))
-         (_version (format "purescript-mode version %s (%s @ %s)"
-                           purescript-version
-                           purescript-git-version
-                           purescript-mode-dir)))
+  (let* ((purs-mode-dir (ignore-errors
+                             (file-name-directory (or (locate-library "purs-mode") ""))))
+         (_version (format "purs-mode version %s (%s @ %s)"
+                           purs-version
+                           purs-git-version
+                           purs-mode-dir)))
     (if here
         (insert _version)
       (message "%s" _version))))
 
 ;;;###autoload
-(defun purescript-mode-view-news ()
-  "Display information on recent changes to purescript-mode."
+(defun purs-mode-view-news ()
+  "Display information on recent changes to purs-mode."
   (interactive)
-  (with-current-buffer (find-file-read-only (expand-file-name "NEWS" purescript-mode-pkg-base-dir))
+  (with-current-buffer (find-file-read-only (expand-file-name "NEWS" purs-mode-pkg-base-dir))
     (goto-char (point-min))
     (outline-hide-sublevels 1)
     (outline-next-visible-heading 1)
     (outline-show-subtree)))
 
-(defgroup purescript nil
+(defgroup purs nil
   "Major mode for editing PureScript programs."
-  :link '(custom-manual "(purescript-mode)")
+  :link '(custom-manual "(purs-mode)")
   :group 'languages
-  :prefix "purescript-")
+  :prefix "purs-")
 
 ;;;###autoload
-(defun purescript-customize ()
-  "Browse the purescript customize sub-tree.
-This calls 'customize-browse' with purescript as argument and makes
-sure all purescript customize definitions have been loaded."
+(defun purs-customize ()
+  "Browse the purs customize sub-tree.
+This calls 'customize-browse' with purs as argument and makes
+sure all purs customize definitions have been loaded."
   (interactive)
   ;; make sure all modules with (defcustom ...)s are loaded
   (mapc 'require
-        '(purescript-indentation
-          purescript-indent
-          purescript-interactive-mode
-          purescript-yas))
-  (customize-browse 'purescript))
+        '(purs-indentation
+          purs-indent
+          purs-interactive-mode
+          purs-yas))
+  (customize-browse 'purs))
 
 ;; Are we looking at a literate script?
-(defvar purescript-literate nil
+(defvar purs-literate nil
   "*If not nil, the current buffer contains a literate PureScript script.
 Possible values are: `bird' and `tex', for Bird-style and LaTeX-style
-literate scripts respectively.  Set by `purescript-mode' and
-`literate-purescript-mode'.  For an ambiguous literate buffer -- i.e. does
+literate scripts respectively.  Set by `purs-mode' and
+`literate-purs-mode'.  For an ambiguous literate buffer -- i.e. does
 not contain either \"\\begin{code}\" or \"\\end{code}\" on a line on
 its own, nor does it contain \">\" at the start of a line -- the value
-of `purescript-literate-default' is used.")
-(make-variable-buffer-local 'purescript-literate)
-(put 'purescript-literate 'safe-local-variable 'symbolp)
+of `purs-literate-default' is used.")
+(make-variable-buffer-local 'purs-literate)
+(put 'purs-literate 'safe-local-variable 'symbolp)
 ;; Default literate style for ambiguous literate buffers.
-(defcustom purescript-literate-default 'bird
-  "Default value for `purescript-literate'.
+(defcustom purs-literate-default 'bird
+  "Default value for `purs-literate'.
 Used if the style of a literate buffer is ambiguous.  This variable should
 be set to the preferred literate style."
-  :group 'purescript
+  :group 'purs
   :type '(choice (const bird) (const tex) (const nil)))
 ;;;###autoload
-(defvar purescript-mode-map
+(defvar purs-mode-map
   (let ((map (make-sparse-keymap)))
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; Editing-specific commands
-    (define-key map (kbd "C-c C-.") 'purescript-mode-format-imports)
-    (define-key map [remap delete-indentation] 'purescript-delete-indentation)
+    (define-key map (kbd "C-c C-.") 'purs-mode-format-imports)
+    (define-key map [remap delete-indentation] 'purs-delete-indentation)
 
     map)
   "Keymap used in PureScript mode.")
 
 ;; Syntax table.
-(defvar purescript-mode-syntax-table
+(defvar purs-mode-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?\  " " table)
     (modify-syntax-entry ?\t " " table)
@@ -195,14 +195,14 @@ be set to the preferred literate style."
     table)
   "Syntax table used in PureScript mode.")
 
-(defun purescript-ident-at-point ()
+(defun purs-ident-at-point ()
   "Return the identifier under point, or nil if none found.
 May return a qualified name."
-  (let ((reg (purescript-ident-pos-at-point)))
+  (let ((reg (purs-ident-pos-at-point)))
     (when reg
       (buffer-substring-no-properties (car reg) (cdr reg)))))
 
-(defun purescript-ident-pos-at-point ()
+(defun purs-ident-pos-at-point ()
   "Return the span of the identifier under point, or nil if none found.
 May return a qualified name."
   (save-excursion
@@ -244,74 +244,74 @@ May return a qualified name."
         ;; This is it.
         (cons start end)))))
 
-(defun purescript-delete-indentation (&optional arg)
+(defun purs-delete-indentation (&optional arg)
   "Like `delete-indentation' but ignoring Bird-style \">\"."
   (interactive "*P")
-  (let ((fill-prefix (or fill-prefix (if (eq purescript-literate 'bird) ">"))))
+  (let ((fill-prefix (or fill-prefix (if (eq purs-literate 'bird) ">"))))
     (delete-indentation arg)))
 
 ;; Various mode variables.
 
-(defcustom purescript-mode-hook nil
-  "Hook run after entering `purescript-mode'.
+(defcustom purs-mode-hook nil
+  "Hook run after entering `purs-mode'.
 
 Some of the supported modules that can be activated via this hook:
 
-   `purescript-indentation', Kristof Bastiaensen
+   `purs-indentation', Kristof Bastiaensen
      Intelligent semi-automatic indentation Mk2
 
-   `purescript-indent', Guy Lapalme
+   `purs-indent', Guy Lapalme
      Intelligent semi-automatic indentation.
 
-   `purescript-simple-indent', Graeme E Moss and Heribert Schuetz
+   `purs-simple-indent', Graeme E Moss and Heribert Schuetz
      Simple indentation.
 
 Module X is activated using the command `turn-on-X'.  For example,
-`purescript-indent' is activated using `turn-on-purescript-indent'.
+`purs-indent' is activated using `turn-on-purs-indent'.
 For more information on a specific module, see the help for its `X-mode'
 function.  Some modules can be deactivated using `turn-off-X'.
 
-See Info node `(purescript-mode)purescript-mode-hook' for more details.
+See Info node `(purs-mode)purs-mode-hook' for more details.
 
 Warning: do not enable more than one of the three indentation
-modes. See Info node `(purescript-mode)indentation' for more
+modes. See Info node `(purs-mode)indentation' for more
 details."
   :type 'hook
-  :group 'purescript
-  :link '(info-link "(purescript-mode)purescript-mode-hook")
-  :link '(function-link purescript-mode)
+  :group 'purs
+  :link '(info-link "(purs-mode)purs-mode-hook")
+  :link '(function-link purs-mode)
   :options `(capitalized-words-mode
              turn-on-eldoc-mode
-             turn-on-purescript-indent
-             turn-on-purescript-indentation
-             turn-on-purescript-simple-indent
-             turn-on-purescript-unicode-input-method))
+             turn-on-purs-indent
+             turn-on-purs-indentation
+             turn-on-purs-simple-indent
+             turn-on-purs-unicode-input-method))
 
 (defvar eldoc-print-current-symbol-info-function)
 
 ;; The main mode functions
 ;;;###autoload
-(define-derived-mode purescript-mode prog-mode "PureScript"
+(define-derived-mode purs-mode prog-mode "PureScript"
   "Major mode for editing PureScript programs.
 
-See also Info node `(purescript-mode)Getting Started' for more
+See also Info node `(purs-mode)Getting Started' for more
 information about this mode.
 
-\\<purescript-mode-map>
-Literate scripts are supported via `literate-purescript-mode'.
-The variable `purescript-literate' indicates the style of the script in the
+\\<purs-mode-map>
+Literate scripts are supported via `literate-purs-mode'.
+The variable `purs-literate' indicates the style of the script in the
 current buffer.  See the documentation on this variable for more details.
 
-Use `purescript-version' to find out what version of PureScript mode you are
+Use `purs-version' to find out what version of PureScript mode you are
 currently using.
 
-Additional PureScript mode modules can be hooked in via `purescript-mode-hook';
+Additional PureScript mode modules can be hooked in via `purs-mode-hook';
 see documentation for that variable for more details."
-  :group 'purescript
+  :group 'purs
   (set (make-local-variable 'paragraph-start) (concat "^$\\|" page-delimiter))
   (set (make-local-variable 'paragraph-separate) paragraph-start)
-  (set (make-local-variable 'fill-paragraph-function) 'purescript-fill-paragraph)
-  ;; (set (make-local-variable 'adaptive-fill-function) 'purescript-adaptive-fill)
+  (set (make-local-variable 'fill-paragraph-function) 'purs-fill-paragraph)
+  ;; (set (make-local-variable 'adaptive-fill-function) 'purs-adaptive-fill)
   (set (make-local-variable 'adaptive-fill-mode) nil)
   (set (make-local-variable 'comment-start) "-- ")
   (set (make-local-variable 'comment-padding) 0)
@@ -319,15 +319,15 @@ see documentation for that variable for more details."
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'comment-end-skip) "[ \t]*\\(-}\\|\\s>\\)")
   (set (make-local-variable 'parse-sexp-ignore-comments) nil)
-  (set (make-local-variable 'indent-line-function) 'purescript-mode-suggest-indent-choice)
+  (set (make-local-variable 'indent-line-function) 'purs-mode-suggest-indent-choice)
   ;; Set things up for font-lock.
   (set (make-local-variable 'font-lock-defaults)
-       '(purescript-font-lock-choose-keywords
+       '(purs-font-lock-choose-keywords
          nil nil ((?\' . "w") (?_  . "w")) nil
          (font-lock-syntactic-keywords
-          . purescript-font-lock-choose-syntactic-keywords)
+          . purs-font-lock-choose-syntactic-keywords)
          (font-lock-syntactic-face-function
-          . purescript-syntactic-face-function)
+          . purs-syntactic-face-function)
          ;; Get help from font-lock-syntactic-keywords.
          (parse-sexp-lookup-properties . t)))
   ;; PureScript's layout rules mean that TABs have to be handled with extra care.
@@ -341,12 +341,12 @@ see documentation for that variable for more details."
   (set (make-local-variable 'dabbrev-case-distinction) nil)
   (set (make-local-variable 'dabbrev-case-replace) nil)
   (set (make-local-variable 'dabbrev-abbrev-char-regexp) "\\sw\\|[.]")
-  (setq prettify-symbols-alist purescript-font-lock-prettify-symbols-alist)
-  (when (bound-and-true-p purescript-font-lock-symbols)
-    (warn "`purescript-font-lock-symbols' is obsolete: please enable `prettify-symbols-mode' locally or globally instead."))
+  (setq prettify-symbols-alist purs-font-lock-prettify-symbols-alist)
+  (when (bound-and-true-p purs-font-lock-symbols)
+    (warn "`purs-font-lock-symbols' is obsolete: please enable `prettify-symbols-mode' locally or globally instead."))
   )
 
-(defun purescript-fill-paragraph (justify)
+(defun purs-fill-paragraph (justify)
   (save-excursion
     ;; Fill paragraph should only work in comments.
     ;; The -- comments are handled properly by default
@@ -376,10 +376,10 @@ see documentation for that variable for more details."
        (t
         ;; go to end of line and try again
         (end-of-line)
-        (purescript-fill-paragraph justify))))))
+        (purs-fill-paragraph justify))))))
 
 
-;; (defun purescript-adaptive-fill ()
+;; (defun purs-adaptive-fill ()
 ;;   ;; We want to use "--  " as the prefix of "-- |", etc.
 ;;   (let* ((line-end (save-excursion (end-of-line) (point)))
 ;;          (line-start (point)))
@@ -395,81 +395,81 @@ see documentation for that variable for more details."
 
 
 ;;;###autoload
-(define-derived-mode literate-purescript-mode purescript-mode "LitPureScript"
-  "As `purescript-mode' but for literate scripts."
-  (setq purescript-literate
+(define-derived-mode literate-purs-mode purs-mode "LitPurs"
+  "As `purs-mode' but for literate scripts."
+  (setq purs-literate
         (save-excursion
           (goto-char (point-min))
           (cond
            ((re-search-forward "^\\\\\\(begin\\|end\\){code}$" nil t) 'tex)
            ((re-search-forward "^>" nil t) 'bird)
-           (t purescript-literate-default))))
-  (if (eq purescript-literate 'bird)
+           (t purs-literate-default))))
+  (if (eq purs-literate 'bird)
       ;; fill-comment-paragraph isn't much use there, and even gets confused
       ;; by the syntax-table text-properties we add to mark the first char
       ;; of each line as a comment-starter.
       (set (make-local-variable 'fill-paragraph-handle-comment) nil))
   (set (make-local-variable 'mode-line-process)
-       '("/" (:eval (symbol-name purescript-literate)))))
+       '("/" (:eval (symbol-name purs-literate)))))
 
-;;;###autoload(add-to-list 'auto-mode-alist '("\\.purs\\'" . purescript-mode))
+;;;###autoload(add-to-list 'auto-mode-alist '("\\.purs\\'" . purs-mode))
 
-(defun purescript-pursuit (query &optional info)
+(defun purs-pursuit (query &optional info)
   "Do a Pursuit search for QUERY.
-When `purescript-pursuit-command' is non-nil, this command runs
+When `purs-pursuit-command' is non-nil, this command runs
 that.  Otherwise, it opens a Pursuit search result in the browser.
 
-If prefix argument INFO is given, then `purescript-pursuit-command'
+If prefix argument INFO is given, then `purs-pursuit-command'
 is asked to show extra info for the items matching QUERY.."
   (interactive
-   (let ((def (purescript-ident-at-point)))
+   (let ((def (purs-ident-at-point)))
      (if (and def (symbolp def)) (setq def (symbol-name def)))
      (list (read-string (if def
                             (format "Pursuit query (default %s): " def)
                           "Pursuit query: ")
                         nil nil def)
            current-prefix-arg)))
-  (browse-url (format "https://pursuit.purescript.org/search?q=%s" query)))
+  (browse-url (format "https://pursuit.purs.org/search?q=%s" query)))
 
-(defcustom purescript-completing-read-function 'completing-read
+(defcustom purs-completing-read-function 'completing-read
   "Default function to use for completion."
-  :group 'purescript
+  :group 'purs
   :type '(choice
           (function-item :tag "completing-read" :value completing-read)
           (function-item :tag "ido" :value ido-completing-read)
           (function-item :tag "helm" :value helm--completing-read-default)
           (function :tag "Custom function")))
 
-(defcustom purescript-indent-spaces 2
+(defcustom purs-indent-spaces 2
   "Number of spaces to indent inwards."
   :type 'integer
   :safe 'integerp)
 
-(defun purescript-mode-suggest-indent-choice ()
+(defun purs-mode-suggest-indent-choice ()
   "Ran when the user tries to indent in the buffer but no indentation mode has been selected.
-Brings up the documentation for purescript-mode-hook."
-  (describe-variable 'purescript-mode-hook))
+Brings up the documentation for purs-mode-hook."
+  (describe-variable 'purs-mode-hook))
 
-(defun purescript-mode-format-imports ()
+(defun purs-mode-format-imports ()
   "Format the imports by aligning and sorting them."
   (interactive)
   (let ((col (current-column)))
-    (purescript-sort-imports)
-    (purescript-align-imports)
+    (purs-sort-imports)
+    (purs-align-imports)
     (goto-char (+ (line-beginning-position)
                   col))))
 
-(defun purescript-mode-message-line (str)
+(defun purs-mode-message-line (str)
   "Message only one line, multiple lines just disturbs the programmer."
   (let ((lines (split-string str "\n" t)))
     (when (and (car lines) (stringp (car lines)))
       (message "%s"
                (concat (car lines)
                        (if (and (cdr lines) (stringp (cadr lines)))
-                           (format " [ %s .. ]" (purescript-string-take (purescript-trim (cadr lines)) 10))
+                           (format " [ %s .. ]" (purs-string-take (purs-trim (cadr lines)) 10))
                          ""))))))
 
 
-(provide 'purescript-mode)
+(provide 'purs-mode)
 
-;;; purescript-mode.el ends here
+;;; purs-mode.el ends here
