@@ -34,6 +34,7 @@
 (require 'outline)
 (require 'purs-align-imports)
 (require 'purs-sort-imports)
+(require 'purs-indentation)
 (require 'purs-string)
 (require 'purs-font-lock)
 (require 'cl-lib)
@@ -88,6 +89,9 @@ sure all purs customize definitions have been loaded."
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; Editing-specific commands
     (define-key map (kbd "C-c C-.") 'purs-mode-format-imports)
+    (define-key map [?\r] 'purs-newline-and-indent)
+    (define-key map [backspace] 'purs-indentation-delete-backward-char)
+    (define-key map [?\C-d] 'purs-indentation-delete-char)
     map)
   "Keymap used in PureScript mode.")
 
@@ -260,7 +264,9 @@ see documentation for that variable for more details."
   (set (make-local-variable 'comment-end) "")
   (set (make-local-variable 'comment-end-skip) "[ \t]*\\(-}\\|\\s>\\)")
   (set (make-local-variable 'parse-sexp-ignore-comments) nil)
-  (set (make-local-variable 'indent-line-function) 'purs-mode-suggest-indent-choice)
+  (set (make-local-variable 'indent-line-function) 'purs-indentation-indent-line)
+  (set (make-local-variable 'normal-auto-fill-function) 'purs-indentation-auto-fill-function)
+  (set (make-local-variable 'purs-indent-last-position) nil)
   ;; Set things up for font-lock.
   (set (make-local-variable 'font-lock-defaults)
        '(purs-font-lock-keywords

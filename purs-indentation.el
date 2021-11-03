@@ -111,34 +111,8 @@
     (defsubst syntax-ppss (&rest pos)
       (parse-partial-sexp (point-min) (or pos (point))))))
 
-(defconst purs-indentation-mode-map
-  (let ((keymap (make-sparse-keymap)))
-    (define-key keymap [?\r] 'purs-newline-and-indent)
-    (define-key keymap [backspace] 'purs-indentation-delete-backward-char)
-    (define-key keymap [?\C-d] 'purs-indentation-delete-char)
-    keymap))
-
 ;; Used internally
 (defvar purs-indent-last-position)
-
-;;;###autoload
-(define-minor-mode purs-indentation-mode
-  "Purs indentation mode that deals with the layout rule.
-It rebinds RET, DEL and BACKSPACE, so that indentations can be
-set and deleted as if they were real tabs.  It supports
-autofill-mode."
-  :lighter " Ind"
-  :keymap purs-indentation-mode-map
-  (kill-local-variable 'indent-line-function)
-  (kill-local-variable 'normal-auto-fill-function)
-  (when purs-indentation-mode
-    (setq max-lisp-eval-depth (max max-lisp-eval-depth 600)) ;; set a higher limit for recursion
-    (set (make-local-variable 'indent-line-function)
-         'purs-indentation-indent-line)
-    (set (make-local-variable 'normal-auto-fill-function)
-         'purs-indentation-auto-fill-function)
-    (set (make-local-variable 'purs-indent-last-position)
-         nil)))
 
 (defun purs-current-column ()
   "Compute current column according to purs syntax rules,
