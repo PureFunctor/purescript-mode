@@ -254,7 +254,7 @@ Returns keywords suitable for `font-lock-keywords'."
                       purs-operator-face))))
     keywords))
 
-(defconst purs-basic-syntactic-keywords
+(defvar purs-basic-syntactic-keywords
   '(;; Character constants (since apostrophe can't have string syntax).
     ;; Beware: do not match something like 's-}' or '\n"+' since the first '
     ;; might be inside a comment or a string.
@@ -322,7 +322,7 @@ Returns keywords suitable for `font-lock-keywords'."
     font-lock-doc-face)
    (t font-lock-comment-face)))
 
-(defconst purs-font-lock-keywords
+(defvar purs-font-lock-keywords
   (purs-font-lock-keywords-create nil)
   "Font lock definitions for non-literate PureScript.")
 
