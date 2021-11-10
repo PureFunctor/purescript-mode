@@ -79,8 +79,7 @@ sure all purs customize definitions have been loaded."
   (interactive)
   ;; make sure all modules with (defcustom ...)s are loaded
   (mapc 'require
-        '(purs-indentation
-          purs-indent))
+        '(purs-indentation))
   (customize-browse 'purs))
 
 ;;;###autoload
