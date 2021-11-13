@@ -107,6 +107,7 @@ sure all purs customize definitions have been loaded."
     (modify-syntax-entry ?\[  "(]" table)
     (modify-syntax-entry ?\]  ")[" table)
     (modify-syntax-entry ?\\ "w" table)
+    (modify-syntax-entry ?. "." table)
 
     (cond ((featurep 'xemacs)
            ;; I don't know whether this is equivalent to the below
